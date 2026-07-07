@@ -1,9 +1,9 @@
-# Import library yang dibutuhkan
+# Import required libraries
 import os
 from uuid import uuid4
 from typing import Any, Optional
 
-import streamlit as st  # framework web app
+import streamlit as st  # web app framework
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage
 from langchain_core.tools import tool
@@ -12,7 +12,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.prebuilt import create_react_agent
 
 
-# ── 1. Konfigurasi Halaman ───────────────────────────────────────────────────
+# ── 1. Page Configuration ───────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Data Analyst Interviewer Bot",
     page_icon="📊",
@@ -21,12 +21,12 @@ st.set_page_config(
 
 st.title("📊 Data Analyst Interviewer Bot")
 st.caption(
-    "Latihan interview Data Analyst menggunakan Gemini 2.5 Flash-Lite "
+    "Practice Data Analyst interviews using Gemini 2.5 Flash-Lite "
     "+ LangGraph ReAct Agent."
 )
 
 
-# ── 2. System Instruction untuk Interviewer ─────────────────────────────────
+# ── 2. System Instruction for the Interviewer ──────────────────────────────────
 SYSTEM_INSTRUCTION = """
 You are a Senior Data Analyst Interviewer.
 
@@ -82,7 +82,7 @@ Important behavior:
 """
 
 
-# ── 3. Tools untuk ReAct Agent ───────────────────────────────────────────────
+# ── 3. Tools for the ReAct Agent ───────────────────────────────────────────────
 @tool
 def get_interview_rubric(topic: str) -> str:
     """
@@ -221,18 +221,18 @@ How would you diagnose the root cause and prioritize next actions?
 """
 
 
-# ── 4. Helper Function: Buat Agent ───────────────────────────────────────────
+# ── 4. Helper Function: Build Agent ────────────────────────────────────────────
 def build_data_analyst_interviewer_bot(
     google_api_key: str,
     model_name: str = "gemini-2.5-flash-lite",
     temperature: float = 0.3,
 ):
     """
-    Membuat LangGraph ReAct Agent menggunakan Gemini.
+    Build a LangGraph ReAct Agent using Gemini.
     """
     load_dotenv()
 
-    # Simpan API key ke environment agar terbaca oleh langchain-google-genai.
+    # Save the API key to the environment so langchain-google-genai can read it.
     os.environ["GOOGLE_API_KEY"] = google_api_key
 
     llm = ChatGoogleGenerativeAI(
@@ -241,7 +241,7 @@ def build_data_analyst_interviewer_bot(
         api_key=google_api_key,
     )
 
-    # InMemorySaver dipakai agar agent punya short-term memory selama app berjalan.
+    # InMemorySaver gives the agent short-term memory while the app is running.
     memory = InMemorySaver()
 
     tools = [
@@ -259,10 +259,10 @@ def build_data_analyst_interviewer_bot(
     return agent
 
 
-# ── 5. Helper Function: Ambil Respons Terakhir dari Agent ───────────────────
+# ── 5. Helper Function: Extract Last Agent Response ───────────────────────────
 def normalize_message_content(content: Any) -> str:
     """
-    Mengubah berbagai format content dari LLM menjadi string.
+    Convert different LLM content formats into a string.
     """
     if isinstance(content, str):
         return content
@@ -289,7 +289,7 @@ def normalize_message_content(content: Any) -> str:
 
 def extract_last_ai_message(result: dict[str, Any]) -> str:
     """
-    Mengambil pesan AI terakhir dari output LangGraph.
+    Extract the latest AI message from the LangGraph output.
     """
     messages = result.get("messages", [])
 
@@ -306,19 +306,19 @@ def extract_last_ai_message(result: dict[str, Any]) -> str:
         if message_type == "ai" and content is not None:
             return normalize_message_content(content)
 
-    return "Maaf, saya belum bisa mengambil respons dari agent."
+    return "Sorry, I could not extract a response from the agent."
 
 
-# ── 6. Helper Function: Interaksi dengan Bot ────────────────────────────────
+# ── 6. Helper Function: Interact with the Bot ─────────────────────────────────
 def ask_interviewer_bot(
     agent,
     user_input: str,
     thread_id: str,
 ) -> str:
     """
-    Mengirim satu pesan ke interviewer bot dan mengembalikan responsnya.
+    Send one message to the interviewer bot and return the response.
 
-    Gunakan thread_id yang sama agar memory percakapan tetap tersimpan.
+    Reuse the same thread_id to keep the conversation memory.
     """
     config = {
         "configurable": {
@@ -341,14 +341,14 @@ def ask_interviewer_bot(
     return extract_last_ai_message(result)
 
 
-# ── 7. Sidebar: Pengaturan App ──────────────────────────────────────────────
+# ── 7. Sidebar: App Settings ──────────────────────────────────────────────────
 with st.sidebar:
-    st.subheader("Pengaturan")
+    st.subheader("Settings")
 
     google_api_key = st.text_input(
         "Google AI API Key",
         type="password",
-        help="Masukkan API key dari Google AI Studio.",
+        help="Enter your API key from Google AI Studio.",
     )
 
     model_name = st.text_input(
@@ -363,11 +363,11 @@ with st.sidebar:
         max_value=1.0,
         value=0.3,
         step=0.1,
-        help="Semakin tinggi nilainya, respons akan semakin kreatif.",
+        help="Higher values make the response more creative.",
     )
 
-    target_role = st.selectbox(
-        "Target Interview",
+    expected_position = st.selectbox(
+        "Expected Position",
         [
             "Growth Data Analyst",
             "Product Data Analyst",
@@ -388,14 +388,14 @@ with st.sidebar:
     )
 
     start_button = st.button(
-        "Mulai Interview",
+        "Start Interview",
         type="primary",
-        help="Mulai sesi interview baru berdasarkan target role.",
+        help="Start a new interview session based on the expected position.",
     )
 
     reset_button = st.button(
-        "Reset Percakapan",
-        help="Hapus semua pesan dan mulai dari awal.",
+        "Reset Conversation",
+        help="Clear all messages and start over.",
     )
 
     st.divider()
@@ -407,23 +407,23 @@ with st.sidebar:
     )
 
 
-# ── 8. Validasi API Key ─────────────────────────────────────────────────────
+# ── 8. API Key Validation ─────────────────────────────────────────────────────
 if not google_api_key:
     st.info(
-        "Masukkan Google AI API Key di sidebar untuk mulai interview.",
+        "Enter your Google AI API Key in the sidebar to start the interview.",
         icon="🗝️",
     )
     st.stop()
 
 
-# ── 9. Inisialisasi Agent & Session State ───────────────────────────────────
+# ── 9. Agent & Session State Initialization ──────────────────────────────────
 current_bot_config = {
     "google_api_key": google_api_key,
     "model_name": model_name,
     "temperature": temperature,
 }
 
-# Kalau config berubah, agent dibuat ulang supaya key/model terbaru digunakan.
+# If the config changes, rebuild the agent so the latest key/model is used.
 if (
     "bot_config" not in st.session_state
     or st.session_state.bot_config != current_bot_config
@@ -440,10 +440,10 @@ if (
         st.session_state.started = False
 
     except Exception as e:
-        st.error(f"Gagal membuat agent. Detail error: {e}")
+        st.error(f"Failed to create the agent. Error details: {e}")
         st.stop()
 
-# Inisialisasi fallback kalau session belum ada.
+# Fallback initialization if the session state does not exist yet.
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -454,7 +454,7 @@ if "started" not in st.session_state:
     st.session_state.started = False
 
 
-# ── 10. Tombol Reset ────────────────────────────────────────────────────────
+# ── 10. Reset Button ─────────────────────────────────────────────────────────
 if reset_button:
     st.session_state.thread_id = f"interview-{uuid4()}"
     st.session_state.messages = []
@@ -462,20 +462,20 @@ if reset_button:
     st.rerun()
 
 
-# ── 11. Tombol Mulai Interview ──────────────────────────────────────────────
+# ── 11. Start Interview Button ───────────────────────────────────────────────
 if start_button:
     st.session_state.thread_id = f"interview-{uuid4()}"
     st.session_state.messages = []
     st.session_state.started = True
 
     opening_prompt = f"""
-I want to practice for a {target_role} interview.
+I want to practice for a {expected_position} interview.
 Difficulty level: {difficulty}.
 Please start the interview with one realistic opening question.
 Ask only one question.
 """
 
-    with st.spinner("Menyiapkan pertanyaan interview..."):
+    with st.spinner("Preparing the interview question..."):
         try:
             answer = ask_interviewer_bot(
                 agent=st.session_state.agent,
@@ -483,7 +483,7 @@ Ask only one question.
                 thread_id=st.session_state.thread_id,
             )
         except Exception as e:
-            answer = f"Terjadi error saat memulai interview: {e}"
+            answer = f"An error occurred while starting the interview: {e}"
 
     st.session_state.messages.append(
         {
@@ -493,32 +493,32 @@ Ask only one question.
     )
 
 
-# ── 12. Tampilan Awal Kalau Belum Ada Pesan ─────────────────────────────────
+# ── 12. Initial View When There Are No Messages ──────────────────────────────
 if not st.session_state.messages:
     with st.chat_message("assistant"):
         st.markdown(
             """
-Hi, saya akan menjadi interviewer untuk latihan Data Analyst interview.
+Hi, I will be your interviewer for Data Analyst interview practice.
 
-Pilih target interview di sidebar, lalu klik **Mulai Interview**.
-Kamu juga bisa langsung mengetik pesan seperti:
+Choose your expected position in the sidebar, then click **Start Interview**.
+You can also type a message directly, such as:
 
-`Saya ingin latihan interview Growth Data Analyst untuk fintech.`
+`I want to practice for a Growth Data Analyst interview in fintech.`
 """
         )
 
 
-# ── 13. Tampilkan Riwayat Percakapan ────────────────────────────────────────
+# ── 13. Display Conversation History ─────────────────────────────────────────
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
 
-# ── 14. Input & Respons Chatbot ─────────────────────────────────────────────
-prompt = st.chat_input("Tulis jawabanmu atau minta pertanyaan baru...")
+# ── 14. Chatbot Input & Response ─────────────────────────────────────────────
+prompt = st.chat_input("Write your answer or ask for a new question...")
 
 if prompt:
-    # Langkah 1: Simpan dan tampilkan pesan user
+    # Step 1: Save and display the user message
     st.session_state.messages.append(
         {
             "role": "user",
@@ -529,9 +529,9 @@ if prompt:
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Langkah 2: Kirim ke agent dan tampilkan respons
+    # Step 2: Send to the agent and display the response
     with st.chat_message("assistant"):
-        with st.spinner("Interviewer sedang menilai jawabanmu..."):
+        with st.spinner("The interviewer is evaluating your answer..."):
             try:
                 answer = ask_interviewer_bot(
                     agent=st.session_state.agent,
@@ -539,11 +539,11 @@ if prompt:
                     thread_id=st.session_state.thread_id,
                 )
             except Exception as e:
-                answer = f"Terjadi error: {e}"
+                answer = f"An error occurred: {e}"
 
         st.markdown(answer)
 
-    # Langkah 3: Simpan respons assistant ke riwayat
+    # Step 3: Save the assistant response to the history
     st.session_state.messages.append(
         {
             "role": "assistant",
